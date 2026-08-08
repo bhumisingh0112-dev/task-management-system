@@ -1,24 +1,766 @@
 "use client";
-import {useEffect,useMemo,useState} from 'react';
-import Sidebar from '../components/Sidebar'; import TaskHeader from '../components/TaskHeader'; import TaskCard from '../components/TaskCard'; import AddTaskModal from '../components/AddTaskModal'; import {FieldName} from '../components/FieldsMenu'; import {FilterState} from '../components/FilterMenu'; import {createTask,deleteTask,getTasks,Task,updateTask,Subtask,Comment} from '../lib/api';
-const statuses=['To Do','Doing','Completed','On Hold'] as const; type Column={id:string;title:string;tasks:Task[]};
-function groupTasks(tasks:Task[]):Column[]{return statuses.map(status=>({id:status.toLowerCase().replaceAll(' ','-'),title:status,tasks:tasks.filter(t=>t.status===status)}));}
-export default function TasksPage(){
- const [view,setView]=useState<'board'|'list'>('board'); const [tasks,setTasks]=useState<Task[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const [addOpen,setAddOpen]=useState(false); const [query,setQuery]=useState(''); const [selectedFields,setSelectedFields]=useState<FieldName[]>(['priority','members','dueDate','labels']); const [filters,setFilters]=useState<FilterState>({priority:'',member:'',label:'',status:''}); const [selectedTask,setSelectedTask]=useState<Task|null>(null);
- async function loadTasks(){try{setError('');setLoading(true);setTasks(await getTasks())}catch(e){setError(e instanceof Error?e.message:'Unable to load tasks')}finally{setLoading(false)}} useEffect(()=>{loadTasks()},[]);
- const filteredTasks=useMemo(()=>tasks.filter(t=>{const q=query.trim().toLowerCase();return(!q||t.title.toLowerCase().includes(q)||t.description.toLowerCase().includes(q))&&(!filters.priority||t.priority===filters.priority)&&(!filters.member||t.members.includes(filters.member))&&(!filters.label||t.labels.includes(filters.label))&&(!filters.status||t.status===filters.status)}),[tasks,query,filters]);
- async function addTask(input:{title:string;description:string;priority:string;dueDate:string}){try{const created=await createTask({...input,dueDate:input.dueDate||undefined,members:['AD'],labels:['New']});setTasks(c=>[...c,created]);setAddOpen(false)}catch(e){setError(e instanceof Error?e.message:'Unable to create task')}}
- async function saveTask(id:number,patch:Partial<Task>){try{const updated=await updateTask(id,patch);setTasks(c=>c.map(t=>t.id===id?updated:t));setSelectedTask(updated)}catch(e){setError(e instanceof Error?e.message:'Unable to update task')}}
- async function removeTask(id:number){try{await deleteTask(id);setTasks(c=>c.filter(t=>t.id!==id));setSelectedTask(null)}catch(e){setError(e instanceof Error?e.message:'Unable to delete task')}}
- async function moveTask(id:number,status:string){const task=tasks.find(t=>t.id===id);if(!task||task.status===status)return;setTasks(c=>c.map(t=>t.id===id?{...t,status}:t));try{const updated=await updateTask(id,{status});setTasks(c=>c.map(t=>t.id===id?updated:t));if(selectedTask?.id===id)setSelectedTask(updated)}catch(e){setError(e instanceof Error?e.message:'Unable to move task');loadTasks()}}
- const columns=groupTasks(filteredTasks);
- return <main className="min-h-screen bg-[#fafafa] pb-16 md:pb-0"><Sidebar/><section className="md:ml-[220px]"><TaskHeader view={view} onViewChange={setView} onAddTask={()=>setAddOpen(true)} searchQuery={query} onSearchChange={setQuery} selectedFields={selectedFields} onFieldsChange={setSelectedFields} filters={filters} onFiltersChange={setFilters}/>{error&&<div className="mx-4 mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700 md:mx-6">{error}</div>}{loading?<div className="p-8 text-sm text-gray-400">Loading tasks...</div>:view==='board'?<Board columns={columns} selectedFields={selectedFields} onOpen={setSelectedTask} onMove={moveTask}/>:<TaskList columns={columns} selectedFields={selectedFields} onOpen={setSelectedTask}/>}</section><AddTaskModal open={addOpen} onClose={()=>setAddOpen(false)} onAdd={addTask}/>{selectedTask&&<TaskDetails task={selectedTask} onClose={()=>setSelectedTask(null)} onSave={saveTask} onDelete={removeTask}/>}</main>
+
+import { useEffect, useMemo, useState } from "react";
+import Sidebar from "../components/Sidebar";
+import TaskHeader from "../components/TaskHeader";
+import TaskCard from "../components/TaskCard";
+import AddTaskModal from "../components/AddTaskModal";
+import { FieldName } from "../components/FieldsMenu";
+import { FilterState } from "../components/FilterMenu";
+import {
+  createTask,
+  deleteTask,
+  getTasks,
+  Task,
+  updateTask,
+  Subtask,
+  Comment,
+} from "../lib/api";
+
+const statuses = ["To Do", "Doing", "Completed", "On Hold"] as const;
+
+type Column = {
+  id: string;
+  title: string;
+  tasks: Task[];
+};
+
+function groupTasks(tasks: Task[]): Column[] {
+  return statuses.map((status) => ({
+    id: status.toLowerCase().replaceAll(" ", "-"),
+    title: status,
+    tasks: tasks.filter((t) => t.status === status),
+  }));
 }
-function Board({columns,selectedFields,onOpen,onMove}:{columns:Column[];selectedFields:FieldName[];onOpen:(t:Task)=>void;onMove:(id:number,status:string)=>void}){const [dragged,setDragged]=useState<number|null>(null);return <div className="grid min-h-[calc(100vh-116px)] grid-cols-1 gap-4 overflow-x-auto p-4 md:grid-cols-2 md:p-6 xl:grid-cols-4">{columns.map(c=><div key={c.id} onDragOver={e=>e.preventDefault()} onDrop={()=>{if(dragged!==null)onMove(dragged,c.title);setDragged(null)}} className="min-w-[260px] rounded-xl bg-[#f1f1f1] p-3"><div className="mb-3 flex items-center justify-between px-2"><div className="flex items-center gap-2"><h2 className="text-sm font-semibold">{c.title}</h2><span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-500">{c.tasks.length}</span></div><span className="text-gray-400">•••</span></div><div className="space-y-2">{c.tasks.map(t=><div key={t.id} draggable onDragStart={()=>setDragged(t.id)}><TaskCard task={t} selectedFields={selectedFields} onOpen={onOpen}/></div>)}{!c.tasks.length&&<div className="py-10 text-center text-xs text-gray-400">Drop tasks here</div>}</div></div>)}</div>}
-function TaskList({columns,selectedFields,onOpen}:{columns:Column[];selectedFields:FieldName[];onOpen:(t:Task)=>void}){const has=(x:FieldName)=>selectedFields.includes(x);const grid=`minmax(220px,1fr) ${has('priority')?'100px ':''}${has('members')?'100px ':''}${has('dueDate')?'110px ':''}${has('labels')?'150px ':''}${has('status')?'100px ':''}${has('reporter')?'100px ':''}60px`;return <div className="overflow-x-auto p-4 md:p-6">{columns.map(c=><div key={c.id} className="mb-8 min-w-[760px]"><div className="mb-2 flex items-center gap-2"><h2 className="text-sm font-semibold">{c.title}</h2><span className="text-xs text-gray-400">{c.tasks.length}</span></div><div className="overflow-hidden rounded-xl border bg-white"><div className="grid border-b bg-gray-50 px-4 py-3 text-[11px] font-medium text-gray-500" style={{gridTemplateColumns:grid}}><span>Task</span>{has('priority')&&<span>Priority</span>}{has('members')&&<span>Members</span>}{has('dueDate')&&<span>Due Date</span>}{has('labels')&&<span>Labels</span>}{has('status')&&<span>Status</span>}{has('reporter')&&<span>Reporter</span>}<span>Actions</span></div>{c.tasks.map(t=><button type="button" key={t.id} onClick={()=>onOpen(t)} className="grid w-full border-b px-4 py-3 text-left text-xs last:border-0 hover:bg-gray-50" style={{gridTemplateColumns:grid}}><span><span className="font-medium">{t.title}</span><span className="mt-1 block text-[10px] text-gray-400">{t.description}</span></span>{has('priority')&&<span>{t.priority}</span>}{has('members')&&<span>{t.members.join(', ')}</span>}{has('dueDate')&&<span>{t.dueDate||'—'}</span>}{has('labels')&&<span>{t.labels.join(', ')}</span>}{has('status')&&<span>{t.status}</span>}{has('reporter')&&<span>Admin</span>}<span className="text-gray-400">•••</span></button>)}</div></div>)}</div>}
-function TaskDetails({task,onClose,onSave,onDelete}:{task:Task;onClose:()=>void;onSave:(id:number,patch:Partial<Task>)=>Promise<void>;onDelete:(id:number)=>void}){const [title,setTitle]=useState(task.title);const [description,setDescription]=useState(task.description);const [priority,setPriority]=useState(task.priority);const [status,setStatus]=useState(task.status);const [subtasks,setSubtasks]=useState<Subtask[]>(task.subtasks||[]);const [comments,setComments]=useState<Comment[]>(task.comments||[]);const [newSubtask,setNewSubtask]=useState('');const [comment,setComment]=useState('');const [saving,setSaving]=useState(false);
- async function save(){setSaving(true);await onSave(task.id,{title,description,priority,status,subtasks,comments});setSaving(false)}
- function addSubtask(){if(!newSubtask.trim())return;setSubtasks(c=>[...c,{id:Date.now(),title:newSubtask.trim(),completed:false}]);setNewSubtask('')}
- function toggleSubtask(id:number){setSubtasks(c=>c.map(s=>s.id===id?{...s,completed:!s.completed}:s))}
- function addComment(){if(!comment.trim())return;setComments(c=>[...c,{id:Date.now(),author:'You',text:comment.trim(),createdAt:new Date().toISOString()}]);setComment('')}
- return <div className="fixed inset-0 z-50 bg-black/25"><aside className="absolute right-0 top-0 h-full w-full max-w-[560px] overflow-y-auto bg-white p-6 shadow-xl"><div className="flex items-center justify-between"><span className="text-xs text-gray-400">Task details</span><button onClick={onClose} className="h-8 w-8 rounded-full hover:bg-gray-100">×</button></div><input value={title} onChange={e=>setTitle(e.target.value)} className="mt-8 w-full text-xl font-semibold outline-none"/><textarea value={description} onChange={e=>setDescription(e.target.value)} className="mt-3 w-full resize-none rounded-lg border border-gray-100 p-3 text-sm leading-6 text-gray-500 outline-none" rows={3}/><div className="mt-6 grid grid-cols-2 gap-3"><label className="rounded-xl bg-gray-50 p-4"><span className="text-[10px] text-gray-400">Status</span><select value={status} onChange={e=>setStatus(e.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium outline-none"><option>To Do</option><option>Doing</option><option>Completed</option><option>On Hold</option></select></label><label className="rounded-xl bg-gray-50 p-4"><span className="text-[10px] text-gray-400">Priority</span><select value={priority} onChange={e=>setPriority(e.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium outline-none"><option>Low</option><option>Medium</option><option>High</option></select></label><div className="rounded-xl bg-gray-50 p-4"><span className="text-[10px] text-gray-400">Due date</span><p className="mt-1 text-sm font-medium">{task.dueDate||'No due date'}</p></div><div className="rounded-xl bg-gray-50 p-4"><span className="text-[10px] text-gray-400">Members</span><p className="mt-1 text-sm font-medium">{task.members.join(', ')||'None'}</p></div></div><section className="mt-6"><div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-semibold">Subtasks</h3><span className="text-[10px] text-gray-400">{subtasks.filter(s=>s.completed).length}/{subtasks.length}</span></div><div className="rounded-xl border">{subtasks.map(s=><label key={s.id} className="flex items-center gap-2 border-b px-3 py-3 text-xs last:border-0"><input type="checkbox" checked={s.completed} onChange={()=>toggleSubtask(s.id)}/><span className={s.completed?'text-gray-400 line-through':''}>{s.title}</span></label>)}<div className="flex gap-2 p-2"><input value={newSubtask} onChange={e=>setNewSubtask(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addSubtask()}} placeholder="Add subtask..." className="flex-1 rounded-lg bg-gray-50 px-3 py-2 text-xs outline-none"/><button onClick={addSubtask} className="rounded-lg bg-gray-900 px-3 text-xs text-white">Add</button></div></div></section><section className="mt-6"><h3 className="mb-2 text-sm font-semibold">Updates</h3><div className="space-y-2">{comments.map(c=><div key={c.id} className="rounded-xl border p-3"><div className="text-[10px] text-gray-400">{c.author} · {new Date(c.createdAt).toLocaleDateString()}</div><p className="mt-1 text-xs">{c.text}</p></div>)}</div><div className="mt-2 flex gap-2"><input value={comment} onChange={e=>setComment(e.target.value)} placeholder="Add a comment..." className="flex-1 rounded-lg border px-3 py-2 text-xs outline-none"/><button onClick={addComment} className="rounded-lg border px-3 text-xs">Send</button></div></section><div className="mt-6 flex gap-2"><button onClick={save} disabled={saving} className="rounded-full bg-[#191919] px-5 py-2 text-xs font-medium text-white disabled:opacity-50">{saving?'Saving...':'Save changes'}</button><button onClick={()=>onDelete(task.id)} className="rounded-full border border-red-200 px-5 py-2 text-xs font-medium text-red-600">Delete</button></div></aside></div>}
+
+export default function TasksPage() {
+  const [view, setView] = useState<"board" | "list">("board");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const [selectedFields, setSelectedFields] = useState<FieldName[]>([
+    "priority",
+    "members",
+    "dueDate",
+    "labels",
+  ]);
+
+  const [filters, setFilters] = useState<FilterState>({
+    priority: "",
+    member: "",
+    label: "",
+    status: "",
+  });
+
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  async function loadTasks() {
+    try {
+      setError("");
+      setLoading(true);
+      setTasks(await getTasks());
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to load tasks"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const filteredTasks = useMemo(
+    () =>
+      tasks.filter((t) => {
+        const q = query.trim().toLowerCase();
+
+        return (
+          (!q ||
+            t.title.toLowerCase().includes(q) ||
+            t.description.toLowerCase().includes(q)) &&
+          (!filters.priority || t.priority === filters.priority) &&
+          (!filters.member || t.members.includes(filters.member)) &&
+          (!filters.label || t.labels.includes(filters.label)) &&
+          (!filters.status || t.status === filters.status)
+        );
+      }),
+    [tasks, query, filters]
+  );
+
+  async function addTask(input: {
+    title: string;
+    description: string;
+    priority: string;
+    dueDate: string;
+  }) {
+    try {
+      const created = await createTask({
+        ...input,
+
+        // FIX: API expects string | null, not string | undefined
+        dueDate: input.dueDate || null,
+
+        members: ["AD"],
+        labels: ["New"],
+      });
+
+      setTasks((c) => [...c, created]);
+      setAddOpen(false);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to create task"
+      );
+    }
+  }
+
+  async function saveTask(
+    id: number,
+    patch: Partial<Task>
+  ) {
+    try {
+      const updated = await updateTask(id, patch);
+
+      setTasks((c) =>
+        c.map((t) => (t.id === id ? updated : t))
+      );
+
+      setSelectedTask(updated);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to update task"
+      );
+    }
+  }
+
+  async function removeTask(id: number) {
+    try {
+      await deleteTask(id);
+
+      setTasks((c) => c.filter((t) => t.id !== id));
+      setSelectedTask(null);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to delete task"
+      );
+    }
+  }
+
+  async function moveTask(id: number, status: string) {
+    const task = tasks.find((t) => t.id === id);
+
+    if (!task || task.status === status) {
+      return;
+    }
+
+    setTasks((c) =>
+      c.map((t) =>
+        t.id === id ? { ...t, status } : t
+      )
+    );
+
+    try {
+      const updated = await updateTask(id, { status });
+
+      setTasks((c) =>
+        c.map((t) => (t.id === id ? updated : t))
+      );
+
+      if (selectedTask?.id === id) {
+        setSelectedTask(updated);
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to move task"
+      );
+
+      loadTasks();
+    }
+  }
+
+  const columns = groupTasks(filteredTasks);
+
+  return (
+    <main className="min-h-screen bg-[#fafafa] pb-16 md:pb-0">
+      <Sidebar />
+
+      <section className="md:ml-[220px]">
+        <TaskHeader
+          view={view}
+          onViewChange={setView}
+          onAddTask={() => setAddOpen(true)}
+          searchQuery={query}
+          onSearchChange={setQuery}
+          selectedFields={selectedFields}
+          onFieldsChange={setSelectedFields}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
+
+        {error && (
+          <div className="mx-4 mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700 md:mx-6">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="p-8 text-sm text-gray-400">
+            Loading tasks...
+          </div>
+        ) : view === "board" ? (
+          <Board
+            columns={columns}
+            selectedFields={selectedFields}
+            onOpen={setSelectedTask}
+            onMove={moveTask}
+          />
+        ) : (
+          <TaskList
+            columns={columns}
+            selectedFields={selectedFields}
+            onOpen={setSelectedTask}
+          />
+        )}
+      </section>
+
+      <AddTaskModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdd={addTask}
+      />
+
+      {selectedTask && (
+        <TaskDetails
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onSave={saveTask}
+          onDelete={removeTask}
+        />
+      )}
+    </main>
+  );
+}
+
+function Board({
+  columns,
+  selectedFields,
+  onOpen,
+  onMove,
+}: {
+  columns: Column[];
+  selectedFields: FieldName[];
+  onOpen: (t: Task) => void;
+  onMove: (id: number, status: string) => void;
+}) {
+  const [dragged, setDragged] = useState<number | null>(null);
+
+  return (
+    <div className="grid min-h-[calc(100vh-116px)] grid-cols-1 gap-4 overflow-x-auto p-4 md:grid-cols-2 md:p-6 xl:grid-cols-4">
+      {columns.map((c) => (
+        <div
+          key={c.id}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={() => {
+            if (dragged !== null) {
+              onMove(dragged, c.title);
+            }
+
+            setDragged(null);
+          }}
+          className="min-w-[260px] rounded-xl bg-[#f1f1f1] p-3"
+        >
+          <div className="mb-3 flex items-center justify-between px-2">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold">
+                {c.title}
+              </h2>
+
+              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-500">
+                {c.tasks.length}
+              </span>
+            </div>
+
+            <span className="text-gray-400">•••</span>
+          </div>
+
+          <div className="space-y-2">
+            {c.tasks.map((t) => (
+              <div
+                key={t.id}
+                draggable
+                onDragStart={() => setDragged(t.id)}
+              >
+                <TaskCard
+                  task={t}
+                  selectedFields={selectedFields}
+                  onOpen={onOpen}
+                />
+              </div>
+            ))}
+
+            {!c.tasks.length && (
+              <div className="py-10 text-center text-xs text-gray-400">
+                Drop tasks here
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TaskList({
+  columns,
+  selectedFields,
+  onOpen,
+}: {
+  columns: Column[];
+  selectedFields: FieldName[];
+  onOpen: (t: Task) => void;
+}) {
+  const has = (x: FieldName) =>
+    selectedFields.includes(x);
+
+  const grid = `
+    minmax(220px,1fr)
+    ${has("priority") ? "100px " : ""}
+    ${has("members") ? "100px " : ""}
+    ${has("dueDate") ? "110px " : ""}
+    ${has("labels") ? "150px " : ""}
+    ${has("status") ? "100px " : ""}
+    ${has("reporter") ? "100px " : ""}
+    60px
+  `;
+
+  return (
+    <div className="overflow-x-auto p-4 md:p-6">
+      {columns.map((c) => (
+        <div
+          key={c.id}
+          className="mb-8 min-w-[760px]"
+        >
+          <div className="mb-2 flex items-center gap-2">
+            <h2 className="text-sm font-semibold">
+              {c.title}
+            </h2>
+
+            <span className="text-xs text-gray-400">
+              {c.tasks.length}
+            </span>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border bg-white">
+            <div
+              className="grid border-b bg-gray-50 px-4 py-3 text-[11px] font-medium text-gray-500"
+              style={{ gridTemplateColumns: grid }}
+            >
+              <span>Task</span>
+
+              {has("priority") && (
+                <span>Priority</span>
+              )}
+
+              {has("members") && (
+                <span>Members</span>
+              )}
+
+              {has("dueDate") && (
+                <span>Due Date</span>
+              )}
+
+              {has("labels") && (
+                <span>Labels</span>
+              )}
+
+              {has("status") && (
+                <span>Status</span>
+              )}
+
+              {has("reporter") && (
+                <span>Reporter</span>
+              )}
+
+              <span>Actions</span>
+            </div>
+
+            {c.tasks.map((t) => (
+              <button
+                type="button"
+                key={t.id}
+                onClick={() => onOpen(t)}
+                className="grid w-full border-b px-4 py-3 text-left text-xs last:border-0 hover:bg-gray-50"
+                style={{ gridTemplateColumns: grid }}
+              >
+                <span>
+                  <span className="font-medium">
+                    {t.title}
+                  </span>
+
+                  <span className="mt-1 block text-[10px] text-gray-400">
+                    {t.description}
+                  </span>
+                </span>
+
+                {has("priority") && (
+                  <span>{t.priority}</span>
+                )}
+
+                {has("members") && (
+                  <span>{t.members.join(", ")}</span>
+                )}
+
+                {has("dueDate") && (
+                  <span>
+                    {t.dueDate || "—"}
+                  </span>
+                )}
+
+                {has("labels") && (
+                  <span>{t.labels.join(", ")}</span>
+                )}
+
+                {has("status") && (
+                  <span>{t.status}</span>
+                )}
+
+                {has("reporter") && (
+                  <span>Admin</span>
+                )}
+
+                <span className="text-gray-400">
+                  •••
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TaskDetails({
+  task,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  task: Task;
+  onClose: () => void;
+  onSave: (
+    id: number,
+    patch: Partial<Task>
+  ) => Promise<void>;
+  onDelete: (id: number) => void;
+}) {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(
+    task.description
+  );
+  const [priority, setPriority] = useState(
+    task.priority
+  );
+  const [status, setStatus] = useState(task.status);
+
+  const [subtasks, setSubtasks] = useState<Subtask[]>(
+    task.subtasks || []
+  );
+
+  const [comments, setComments] = useState<Comment[]>(
+    task.comments || []
+  );
+
+  const [newSubtask, setNewSubtask] = useState("");
+  const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+
+    await onSave(task.id, {
+      title,
+      description,
+      priority,
+      status,
+      subtasks,
+      comments,
+    });
+
+    setSaving(false);
+  }
+
+  function addSubtask() {
+    if (!newSubtask.trim()) {
+      return;
+    }
+
+    setSubtasks((c) => [
+      ...c,
+      {
+        id: Date.now(),
+        title: newSubtask.trim(),
+        completed: false,
+      },
+    ]);
+
+    setNewSubtask("");
+  }
+
+  function toggleSubtask(id: number) {
+    setSubtasks((c) =>
+      c.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              completed: !s.completed,
+            }
+          : s
+      )
+    );
+  }
+
+  function addComment() {
+    if (!comment.trim()) {
+      return;
+    }
+
+    setComments((c) => [
+      ...c,
+      {
+        id: Date.now(),
+        author: "You",
+        text: comment.trim(),
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    setComment("");
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/25">
+      <aside className="absolute right-0 top-0 h-full w-full max-w-[560px] overflow-y-auto bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400">
+            Task details
+          </span>
+
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-full hover:bg-gray-100"
+          >
+            ×
+          </button>
+        </div>
+
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="mt-8 w-full text-xl font-semibold outline-none"
+        />
+
+        <textarea
+          value={description}
+          onChange={(e) =>
+            setDescription(e.target.value)
+          }
+          className="mt-3 w-full resize-none rounded-lg border border-gray-100 p-3 text-sm leading-6 text-gray-500 outline-none"
+          rows={3}
+        />
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <label className="rounded-xl bg-gray-50 p-4">
+            <span className="text-[10px] text-gray-400">
+              Status
+            </span>
+
+            <select
+              value={status}
+              onChange={(e) =>
+                setStatus(e.target.value)
+              }
+              className="mt-1 w-full bg-transparent text-sm font-medium outline-none"
+            >
+              <option>To Do</option>
+              <option>Doing</option>
+              <option>Completed</option>
+              <option>On Hold</option>
+            </select>
+          </label>
+
+          <label className="rounded-xl bg-gray-50 p-4">
+            <span className="text-[10px] text-gray-400">
+              Priority
+            </span>
+
+            <select
+              value={priority}
+              onChange={(e) =>
+                setPriority(e.target.value)
+              }
+              className="mt-1 w-full bg-transparent text-sm font-medium outline-none"
+            >
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
+          </label>
+
+          <div className="rounded-xl bg-gray-50 p-4">
+            <span className="text-[10px] text-gray-400">
+              Due date
+            </span>
+
+            <p className="mt-1 text-sm font-medium">
+              {task.dueDate || "No due date"}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-gray-50 p-4">
+            <span className="text-[10px] text-gray-400">
+              Members
+            </span>
+
+            <p className="mt-1 text-sm font-medium">
+              {task.members.join(", ") || "None"}
+            </p>
+          </div>
+        </div>
+
+        <section className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">
+              Subtasks
+            </h3>
+
+            <span className="text-[10px] text-gray-400">
+              {
+                subtasks.filter(
+                  (s) => s.completed
+                ).length
+              }
+              /{subtasks.length}
+            </span>
+          </div>
+
+          <div className="rounded-xl border">
+            {subtasks.map((s) => (
+              <label
+                key={s.id}
+                className="flex items-center gap-2 border-b px-3 py-3 text-xs last:border-0"
+              >
+                <input
+                  type="checkbox"
+                  checked={s.completed}
+                  onChange={() =>
+                    toggleSubtask(s.id)
+                  }
+                />
+
+                <span
+                  className={
+                    s.completed
+                      ? "text-gray-400 line-through"
+                      : ""
+                  }
+                >
+                  {s.title}
+                </span>
+              </label>
+            ))}
+
+            <div className="flex gap-2 p-2">
+              <input
+                value={newSubtask}
+                onChange={(e) =>
+                  setNewSubtask(e.target.value)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    addSubtask();
+                  }
+                }}
+                placeholder="Add subtask..."
+                className="flex-1 rounded-lg bg-gray-50 px-3 py-2 text-xs outline-none"
+              />
+
+              <button
+                onClick={addSubtask}
+                className="rounded-lg bg-gray-900 px-3 text-xs text-white"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <h3 className="mb-2 text-sm font-semibold">
+            Updates
+          </h3>
+
+          <div className="space-y-2">
+            {comments.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-xl border p-3"
+              >
+                <div className="text-[10px] text-gray-400">
+                  {c.author} ·{" "}
+                  {new Date(
+                    c.createdAt
+                  ).toLocaleDateString()}
+                </div>
+
+                <p className="mt-1 text-xs">
+                  {c.text}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-2 flex gap-2">
+            <input
+              value={comment}
+              onChange={(e) =>
+                setComment(e.target.value)
+              }
+              placeholder="Add a comment..."
+              className="flex-1 rounded-lg border px-3 py-2 text-xs outline-none"
+            />
+
+            <button
+              onClick={addComment}
+              className="rounded-lg border px-3 text-xs"
+            >
+              Send
+            </button>
+          </div>
+        </section>
+
+        <div className="mt-6 flex gap-2">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-full bg-[#191919] px-5 py-2 text-xs font-medium text-white disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save changes"}
+          </button>
+
+          <button
+            onClick={() => onDelete(task.id)}
+            className="rounded-full border border-red-200 px-5 py-2 text-xs font-medium text-red-600"
+          >
+            Delete
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}
