@@ -18,9 +18,9 @@ export default function Profile() {
             </div>
             <div className="grid gap-5 p-5 sm:grid-cols-2">
               <label className="text-xs"><span className="text-[var(--muted)]">Email</span><input className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 outline-none" value="guest@pyramid.local" readOnly /></label>
-              <label className="text-xs"><span className="text-[var(--muted)]">Full name</span><input className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 outline-none" defaultValue="Adarsh" /></label>
+              <label className="text-xs"><span className="text-[var(--muted)]">Full name</span><input className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 outline-none" defaultValue="Demo" /></label>
               <label className="text-xs"><span className="text-[var(--muted)]">Title</span><input className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 outline-none" defaultValue="Developer" /></label>
-              <label className="text-xs"><span className="text-[var(--muted)]">Username</span><input className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 outline-none" defaultValue="adarsh" /></label>
+              <label className="text-xs"><span className="text-[var(--muted)]">Username</span><input className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 outline-none" defaultValue="demouser" /></label>
             </div>
           </div>
 
