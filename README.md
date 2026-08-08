@@ -360,5 +360,8 @@ Possible extensions include:
 
 ## License
 
-This project is provided for personal and educational use. Add an
-appropriate license file if the project is distributed publicly.
+This project is provided for personal and educational purposes.
+
+You are free to view, study, and modify the source code for learning and development purposes. Please do not use, redistribute, or publish the project as your own work without permission.
+
+© 2026 Bhumika Kumari. All rights reserved.
