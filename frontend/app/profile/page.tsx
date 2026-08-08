@@ -25,7 +25,7 @@ export default function Profile() {
           </div>
 
           <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-            <div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Workspace access</h2><p className="mt-1 text-xs text-[var(--muted)]">Guest workspace access is enabled for this assessment.</p></div><button className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">Leave Workspace</button></div>
+            <div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Workspace access</h2><p className="mt-1 text-xs text-[var(--muted)]">Guest workspace access is enabled for this workspace.</p></div><button className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">Leave Workspace</button></div>
           </div>
         </div>
       </section>
