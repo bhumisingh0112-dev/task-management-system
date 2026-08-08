@@ -1,0 +1,2 @@
+import Sidebar from "../components/Sidebar";
+export default function Projects(){return <main className="min-h-screen bg-[#fafafa]"><Sidebar/><section className="md:ml-[220px] p-8"><h1 className="text-xl font-semibold">Projects</h1><p className="mt-2 text-sm text-gray-500">Project management workspace.</p><div className="mt-6 rounded-2xl border bg-white p-6"><h2 className="font-medium">Task Management System</h2><p className="mt-1 text-xs text-gray-400">Frontend assessment project</p></div></section></main>}
