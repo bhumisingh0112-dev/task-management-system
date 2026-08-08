@@ -1,93 +1,364 @@
-# Pyramid — Task Management System
+# Task Management System
 
-Full-stack implementation for the AbleSpace Full Stack Developer (Fresher) Technical Assessment.
-
-The assessment requires a Next.js + Tailwind frontend, NestJS backend, database persistence, Guest Login, reusable components, clean APIs/validation, responsive design, theme support, a public GitHub repository, a deployed URL, README and a Part 2 product-understanding submission. The supplied assessment also states that design fidelity and attention to detail are primary evaluation criteria. 
-
-## Stack
-
-- Next.js 16 / App Router / TypeScript
-- Tailwind CSS 4
-- NestJS 11 / TypeScript
-- Prisma 6
-- SQLite (chosen because it is explicitly allowed by the brief and is easy to run locally)
+A modern, responsive task management application for organizing tasks,
+projects, team members, and workflows. The application provides both
+board and list-based task views with search, filtering, task details,
+subtasks, comments, and persistent data storage.
 
 ## Features
 
-- Guest login flow
-- Responsive task workspace
-- Board and List views
-- Search
-- Filters
-- Field visibility controls
-- Add, edit and delete tasks
-- Drag tasks between statuses
-- Persistent status/priority/subtasks/comments
-- Task details drawer
-- Projects page
-- Profile page
-- Light / Dark / System theme
-- Persistent accent/color mode
-- Mobile navigation
-- Validated NestJS REST API
-- Prisma/SQLite persistence
-- Loading and error states
+### Task Management
 
-## Local setup
+-   Create new tasks
+-   Edit existing tasks
+-   Delete tasks
+-   Change task status
+-   Change task priority
+-   Assign members
+-   Add labels
+-   Set due dates
+-   View detailed task information
+-   Add and manage subtasks
+-   Add comments and updates
 
-### Backend
+### Task Views
 
-```bash
-cd backend
-npm install
-copy .env.example .env
-npm run db:generate
-npm run db:push
-npm run start:dev
-```
+-   Kanban-style Board view
+-   List view
+-   Drag and drop tasks between status columns
+-   Configurable visible fields
 
-API: `http://localhost:4000`
+### Search & Filtering
+
+-   Search tasks by title and description
+-   Filter by priority
+-   Filter by members
+-   Filter by labels
+-   Filter by status
+-   Combine search and filters
+
+### Projects
+
+-   View projects
+-   Organize work by project
+-   View project-related tasks
+
+### User Experience
+
+-   Guest access
+-   Responsive layout
+-   Light and dark themes
+-   Configurable accent/color mode
+-   Persistent user preferences
+-   Loading and empty states
+-   Reusable UI components
+
+## Tech Stack
 
 ### Frontend
 
-Open a second terminal:
+-   Next.js
+-   React
+-   TypeScript
+-   Tailwind CSS
 
-```bash
-cd frontend
+### Backend
+
+-   NestJS
+-   TypeScript
+-   REST APIs
+-   DTO validation
+
+### Database
+
+-   SQLite
+-   Prisma ORM
+
+## Project Structure
+
+``` text
+task-management-system/
+├── frontend/
+│   ├── app/
+│   │   ├── components/
+│   │   ├── tasks/
+│   │   ├── projects/
+│   │   ├── settings/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── public/
+│   ├── package.json
+│   └── ...
+│
+├── backend/
+│   ├── src/
+│   │   ├── tasks/
+│   │   ├── prisma/
+│   │   ├── app.module.ts
+│   │   └── main.ts
+│   ├── prisma/
+│   ├── package.json
+│   └── ...
+│
+└── README.md
+```
+
+## Requirements
+
+Make sure the following are installed:
+
+-   Node.js 20.9 or later
+-   npm
+
+You can verify your versions with:
+
+``` bash
+node -v
+npm -v
+```
+
+## Installation
+
+Clone the repository:
+
+``` bash
+git clone <repository-url>
+cd task-management-system
+```
+
+### Backend Setup
+
+Navigate to the backend:
+
+``` bash
+cd backend
+```
+
+Install dependencies:
+
+``` bash
 npm install
+```
+
+Create the environment file:
+
+``` bash
+copy .env.example .env
+```
+
+Generate the Prisma client:
+
+``` bash
+npx prisma generate
+```
+
+Create/update the database:
+
+``` bash
+npx prisma db push
+```
+
+Start the development server:
+
+``` bash
+npm run start:dev
+```
+
+The backend will run on:
+
+``` text
+http://localhost:4000
+```
+
+### Frontend Setup
+
+Open another terminal and navigate to the frontend:
+
+``` bash
+cd frontend
+```
+
+Install dependencies:
+
+``` bash
+npm install
+```
+
+Create the environment file:
+
+``` bash
 copy .env.local.example .env.local
+```
+
+Start the development server:
+
+``` bash
 npm run dev
 ```
 
-App: `http://localhost:3000`
+The frontend will run on:
 
-## API
+``` text
+http://localhost:3000
+```
 
-- `GET /tasks`
-- `GET /tasks/:id`
-- `POST /tasks`
-- `PATCH /tasks/:id`
-- `DELETE /tasks/:id`
+## Environment Variables
 
-## Validation
+### Backend
 
-NestJS uses a global `ValidationPipe` with `whitelist` and `transform`, and DTOs validate titles, priorities, statuses, dates, members, labels, subtasks and comments.
+Create `backend/.env`:
 
-## Design notes / intentional deviations
+``` env
+DATABASE_URL="file:./dev.db"
+PORT=4000
+```
 
-- The Figma screenshots supplied with the assessment were used as the visual reference for the login, sidebar, task board/list, fields/filter menus, task details and settings experiences.
-- Icons are implemented with lightweight text/CSS symbols rather than a third-party icon package to keep installation deterministic after the earlier native/icon dependency issues.
-- Google Login is represented as a non-authenticated UI action; Guest Login is the implemented authentication path because the assessment explicitly requires Guest Login. A production OAuth provider can be connected later without changing the task API.
-- SQLite was selected instead of MongoDB/PostgreSQL because the brief permits any of the listed databases and SQLite keeps the assessment easy to run locally.
+### Frontend
 
-## Part 2
+Create `frontend/.env.local`:
 
-See `docs/Part2_Product_Understanding.pdf` and `docs/Part2_Product_Understanding.md`.
+``` env
+NEXT_PUBLIC_API_URL="http://localhost:4000"
+```
 
-## Submission checklist
+For production, replace the API URL with the deployed backend URL.
 
-Before submitting, replace the placeholder repository/deployment values in `docs/SUBMISSION_CHECKLIST.md`, push the repository publicly with multiple meaningful commits, deploy the frontend/backend, verify the live URL, and keep the deployment accessible for at least 45 days as requested by the assessment.
+## API Endpoints
 
-## AI-use note
+The backend exposes REST APIs for task management.
 
-The assessment explicitly allows AI tools but requires the candidate to understand and explain submitted code. Review the architecture, API flow, validation, state management and styling before submission/interview.
+  Method   Endpoint       Description
+  -------- -------------- ------------------
+  GET      `/tasks`       Get all tasks
+  GET      `/tasks/:id`   Get a task by ID
+  POST     `/tasks`       Create a task
+  PATCH    `/tasks/:id`   Update a task
+  DELETE   `/tasks/:id`   Delete a task
+
+## Example Task
+
+``` json
+{
+  "title": "Design Homepage",
+  "description": "Create the homepage design and layout.",
+  "priority": "High",
+  "status": "todo",
+  "dueDate": "2026-09-12",
+  "members": ["AD"],
+  "labels": ["Design", "UI"]
+}
+```
+
+## Database
+
+The project uses Prisma as the database ORM and SQLite for local
+persistence.
+
+Useful Prisma commands:
+
+``` bash
+npx prisma generate
+npx prisma db push
+npx prisma studio
+```
+
+`prisma studio` can be used to inspect and manage database records
+during development.
+
+## Development
+
+Run the frontend and backend in separate terminals.
+
+### Frontend
+
+``` bash
+cd frontend
+npm run dev
+```
+
+### Backend
+
+``` bash
+cd backend
+npm run start:dev
+```
+
+After both services are running, open:
+
+``` text
+http://localhost:3000
+```
+
+## Production Build
+
+### Frontend
+
+``` bash
+cd frontend
+npm run build
+npm start
+```
+
+### Backend
+
+``` bash
+cd backend
+npm run build
+npm run start:prod
+```
+
+Make sure production environment variables point to the appropriate
+backend and database services.
+
+## Code Organization
+
+The application follows a component-based architecture.
+
+-   **Pages** handle application-level screens and routing.
+-   **Components** contain reusable UI elements.
+-   **API services** handle communication with the backend.
+-   **NestJS modules** organize backend functionality.
+-   **DTOs** validate incoming API requests.
+-   **Prisma** handles database access and persistence.
+
+## Error Handling
+
+The application includes basic handling for:
+
+-   Invalid requests
+-   Missing resources
+-   API errors
+-   Empty task lists
+-   Loading states
+-   Database/API failures
+
+## Responsive Design
+
+The interface is designed to work across:
+
+-   Desktop
+-   Laptop
+-   Tablet
+-   Mobile devices
+
+## Future Improvements
+
+Possible extensions include:
+
+-   Full authentication and authorization
+-   Multiple workspaces
+-   Real-time collaboration
+-   Notifications
+-   File attachments
+-   Advanced project analytics
+-   Activity history
+-   Role-based permissions
+-   PostgreSQL/MySQL support
+-   Automated testing
+-   CI/CD integration
+
+## License
+
+This project is provided for personal and educational use. Add an
+appropriate license file if the project is distributed publicly.
